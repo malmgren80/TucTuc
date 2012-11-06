@@ -1,4 +1,4 @@
 TucTuc
 ======
 
-TucTuc Service Bus
+TucTuc Service Bus micro framework
