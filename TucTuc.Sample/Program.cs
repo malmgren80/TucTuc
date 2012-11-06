@@ -17,12 +17,15 @@ namespace TucTuc.Sample
             string queue = Path.Combine(Path.GetTempPath(), "TucTuc");
 
             cfg.AddEndpoint(message.GetType(), queue);
+            cfg.InputQueue = queue;
 
             var bus = new Bus();
 
             bus.Start(cfg);
 
             bus.Send(message);
+
+            Console.ReadKey();
         }
 
         public class DummyMessage

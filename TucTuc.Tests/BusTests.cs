@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using FakeItEasy;
 using NUnit.Framework;
 
 namespace TucTuc.Tests
@@ -41,5 +42,22 @@ namespace TucTuc.Tests
 
             Assert.Throws<InvalidOperationException>(() => bus.Send(someData));
         }
+
+        [Test]
+        public void Start_InputQueueSet_RegisterTransportListener()
+        {
+            var transport = A.Fake<ITransport>();
+            var cfg = new DefaultConfiguration
+            {
+                Transport = transport,
+                InputQueue = "InQueue",
+            };
+            var bus = new Bus();
+
+            bus.Start(cfg);
+
+            A.CallTo(() => transport.StartListen(cfg.InputQueue)).MustHaveHappened(Repeated.Exactly.Once);
+        }
+
     }
 }

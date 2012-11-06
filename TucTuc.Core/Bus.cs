@@ -19,6 +19,17 @@ namespace TucTuc
         public void Start(IConfiguration configuration = null)
         {
             Config = configuration ?? new DefaultConfiguration();
+
+            Config.Transport.StartListen(Config.InputQueue);
+
+            Config.Transport.OnMessageReceived += OnMessageReceived;
+            
+            /* TODO:
+             * Handlers should be registered at startup in Bus by this procedure:
+             * 1. Scan all assemblies found for IMessageHandler<T>
+             * 2. Register every messagehandler in a dictionary where T is key and messagehandler type is value
+             * 3. It should also be possible to register factory method Func<T, IMessageHandler<T>> in dictionary
+             */
         }
 
         public void Send<T>(T data)
@@ -39,7 +50,30 @@ namespace TucTuc
 
             string serializedData = Config.Serializer.Serialize(message);
 
-            Config.Transport.Message(serializedData, endpoint);
+            Config.Transport.Send(message.Id, serializedData, endpoint);
+        }
+
+        private void OnMessageReceived(object sender, MessageReceivedEventArgs e)
+        {
+            /*
+             * 
+             * When bus is notifed about new message and at startup of bus:
+             * 1. If all workerthreads are busy, exit
+             * 2. Find handler for message
+             * 3. No MessageHandler found -> move to error queue
+             * 4. Instantiate message handler:
+             *    a. Try to find factory method
+             *    b. Try to find default constructor
+             * 5. If instantiate message handler failed -> move to error queue
+             * 6. Create new worker thread from pool
+             * 7. Check for new messages -> Jump to 1 or exit.
+             * 
+             * Message thread is processing like this:
+             * 1. Check if there are any handlers plugged into the pipeline -> call OnProcessing
+             * 2. Let thread process message
+             * 3. Check if there are any handlers plugged into the pipeline -> call OnProcessed
+             * 4. CleanUp of resources ? 
+             */
         }
     }
 }
