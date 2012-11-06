@@ -1,5 +1,0 @@
-<Modules>
-  <Module PersistentId="507A90C4-7193-4B8F-B63B-4C5FCBC0C2C4" ModuleId="TucTuc.Core" />
-  <Module PersistentId="0BC2BC8A-136E-4B78-9B38-A0B0570AC0B1" ModuleId="TucTuc.Tests" />
-  <Module PersistentId="98D8B0A1-419B-4F03-9A21-B3FE40B9EE67" ModuleId="TucTuc.Sample" />
-</Modules>
