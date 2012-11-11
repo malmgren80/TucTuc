@@ -46,17 +46,14 @@ namespace TucTuc.Tests
         [Test]
         public void Start_InputQueueSet_RegisterTransportListener()
         {
+            string queueName = "myQueue";
+
             var transport = A.Fake<ITransport>();
-            var cfg = new DefaultConfiguration
-            {
-                Transport = transport,
-                InputQueue = "InQueue",
-            };
-            var bus = new Bus();
+            var bus = new Bus(queueName) { Transport = transport };
 
-            bus.Start(cfg);
+            bus.Start();
 
-            A.CallTo(() => transport.StartListen(cfg.InputQueue)).MustHaveHappened(Repeated.Exactly.Once);
+            A.CallTo(() => transport.StartListen(queueName)).MustHaveHappened(Repeated.Exactly.Once);
         }
 
     }

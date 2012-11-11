@@ -12,7 +12,7 @@ namespace TucTuc.Tests
         [Test]
         public void DefaultConfiguration_NewInstance_SetsTransport()
         {
-            var cfg = new DefaultConfiguration();
+            var cfg = new Bus();
 
             Assert.That(cfg.Transport, Is.Not.Null);
         }
@@ -20,17 +20,9 @@ namespace TucTuc.Tests
         [Test]
         public void DefaultConfiguration_NewInstance_SetsSerializer()
         {
-            var cfg = new DefaultConfiguration();
+            var cfg = new Bus();
 
             Assert.That(cfg.Serializer, Is.Not.Null);
-        }
-
-        [Test]
-        public void DefaultConfiguration_NewInstance_CreateEndpoints()
-        {
-            var cfg = new DefaultConfiguration();
-
-            Assert.That(cfg.Endpoints, Is.Not.Null);
         }
     }
 }

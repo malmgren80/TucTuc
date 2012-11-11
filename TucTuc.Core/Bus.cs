@@ -1,29 +1,59 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Linq;
-using System.Text;
+using System.Collections.Concurrent;
+using System.Linq.Expressions;
+using System.Reflection;
+using System.Threading;
 
 namespace TucTuc
 {
     public interface IBus
     {
-        void Start(IConfiguration configuration);
+        ITransport Transport { get; set; }
+        ISerializer Serializer { get; set; }
+
+        void Start();
         void Send<T>(T message);
     }
 
-    public class Bus : IBus
+    public class Bus : IBus, IConfiguration
     {
-        public IConfiguration Config { get; private set; }
-
-        public void Start(IConfiguration configuration = null)
+        private ITransport _transport;
+        public ITransport Transport
         {
-            Config = configuration ?? new DefaultConfiguration();
+            get { return (_transport ?? (_transport = new FileTransport())); }
+            set { _transport = value; }
+        }
 
-            Config.Transport.StartListen(Config.InputQueue);
+        private ISerializer _serializer;
+        public ISerializer Serializer
+        {
+            get { return (_serializer ?? (_serializer = new JsonSerializer())); }
+            set { _serializer = value; }
+        }
 
-            Config.Transport.OnMessageReceived += OnMessageReceived;
-            
+        private readonly string _inputQueue;
+        private readonly ConcurrentDictionary<Type, string> _endpoints;
+        private readonly ConcurrentDictionary<Type, object> _messageHandlers;
+
+        public Bus(string inputQueue)
+        {
+            if (string.IsNullOrWhiteSpace(inputQueue)) throw new ArgumentException("inputQueue must have a value");
+
+            _inputQueue = inputQueue;
+
+            _endpoints = new ConcurrentDictionary<Type, string>();
+            _messageHandlers = new ConcurrentDictionary<Type, object>();
+        }
+
+        public Bus() : this(Assembly.GetEntryAssembly().FullName)
+        {
+        }
+
+        public void Start()
+        {
+            Transport.StartListen(_inputQueue);
+            Transport.OnMessageReceived += OnMessageReceived;
+
             /* TODO:
              * Handlers should be registered at startup in Bus by this procedure:
              * 1. Scan all assemblies found for IMessageHandler<T>
@@ -35,26 +65,41 @@ namespace TucTuc
         public void Send<T>(T data)
         {
             if (data == null) throw new ArgumentNullException("data", "data can not be null");
-            if (Config == null) throw new InvalidOperationException("Bus is not started, make sure Start() is called before sending messages.");
 
-            string endpoint = Config.GetEndpoint(data.GetType());
+            string endpoint = GetEndpoint<T>();
             if (string.IsNullOrEmpty(endpoint))
                 throw new InvalidOperationException(string.Format("No endpoint configured for message type: {0}", data.GetType()));
 
-            var message = new TucTucMessage<T>
+            var message = new TucTucMessage
             {
                 Id = Guid.NewGuid(),
                 SentAtUtc = DateTime.UtcNow,
+                Sender = _inputQueue,
                 Payload = data,
             };
 
-            string serializedData = Config.Serializer.Serialize(message);
+            string serializedData = Serializer.Serialize(message);
 
-            Config.Transport.Send(message.Id, serializedData, endpoint);
+            Transport.Send(message.Id, serializedData, endpoint);
+
+            Console.WriteLine("Message sent by Thread: " + Thread.CurrentThread.ManagedThreadId);
         }
 
         private void OnMessageReceived(object sender, MessageReceivedEventArgs e)
         {
+            var message = Serializer.Deserialize<TucTucMessage>(e.Data);
+
+            // 2. Find handler for message
+            var handler = GetMessageHandler(message.Payload.GetType());
+
+            if (handler == null)
+            {
+                throw new InvalidOperationException(string.Format("No handler found for message type: {0}", message.Payload));
+            }
+
+            handler(message.Payload);
+
+
             /*
              * 
              * When bus is notifed about new message and at startup of bus:
@@ -74,6 +119,43 @@ namespace TucTuc
              * 3. Check if there are any handlers plugged into the pipeline -> call OnProcessed
              * 4. CleanUp of resources ? 
              */
+        }
+
+        private string GetEndpoint<T>()
+        {
+            string endpoint;
+            if (!_endpoints.TryGetValue(typeof(T), out endpoint))
+                return null;
+
+            return endpoint;
+        }
+
+        public void RegisterEndpoint<T>(string endpoint)
+        {
+            _endpoints[typeof(T)] = endpoint;
+        }
+
+        public void RegisterMessageHandler<T>(Action<T> handler)
+        {
+            _messageHandlers[typeof (T)] = CastArgument<object, T>(x => handler(x));
+        }
+
+        private static Action<TBase> CastArgument<TBase, TDerived>(Expression<Action<TDerived>> source) where TDerived : TBase
+        {
+            if (typeof(TDerived) == typeof(TBase))
+                return (Action<TBase>)((Delegate)source.Compile());
+            var sourceParameter = Expression.Parameter(typeof(TBase), "source");
+            var result = Expression.Lambda<Action<TBase>>(Expression.Invoke(source, Expression.Convert(sourceParameter, typeof(TDerived))), sourceParameter);
+            return result.Compile();
+        }
+
+        private Action<object> GetMessageHandler(Type type)
+        {
+            object handler;
+            if (!_messageHandlers.TryGetValue(type, out handler))
+                return null;
+
+            return handler as Action<object>;
         }
     }
 }

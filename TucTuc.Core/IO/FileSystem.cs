@@ -10,6 +10,7 @@ namespace TucTuc.IO
     {
         void EnsureExists(string path);
         void WriteFile(string path, string data, Encoding encoding);
+        string ReadFile(string path, Encoding encoding);
         IEnumerable<FileInfo> GetFiles(string path, string pattern);
     }
 
@@ -26,6 +27,11 @@ namespace TucTuc.IO
         public void WriteFile(string path, string data, Encoding encoding)
         {
             File.WriteAllText(path, data, encoding);
+        }
+
+        public string ReadFile(string path, Encoding encoding)
+        {
+            return File.ReadAllText(path, encoding);
         }
 
         public IEnumerable<FileInfo> GetFiles(string path, string pattern)

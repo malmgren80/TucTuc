@@ -13,20 +13,18 @@ namespace TucTuc
     {
         void Send(Guid id, string data, string endpoint);
         void StartListen(string inputQueue);
-        void MessageReceived(string inputQueue);
 
         event EventHandler<MessageReceivedEventArgs> OnMessageReceived;
     }
 
     public class MessageReceivedEventArgs : EventArgs
     {
-        public string Queue { get; set; }
-        public Guid Id { get; set; }
+        public string Data { get; set; }
     }
 
     public class FileTransport : ITransport
     {
-        // TODO: Write the data in one file and a command in another (empty) file
+        // TODO: Write the data in one file and a empty trigger file
  
         private const string Extension = "msg";
 
@@ -58,44 +56,15 @@ namespace TucTuc
             FileSystem.WriteFile(fullPath, data, FileEncoding);
         }
 
-        public void MessageReceived(string inputQueue)
-        {
-            // TODO: A new thread should be created here
-
-            string file = GetOldestValidFile(inputQueue, Pattern);
-
-            if (file != null)
-            {
-                var eventHandler = OnMessageReceived;
-                if (eventHandler != null)
-                {
-                    var eventArgs = new MessageReceivedEventArgs
-                    {
-                        Id = Guid.Parse(file),
-                        Queue = inputQueue,
-                    };
-
-                    eventHandler(this, eventArgs);
-                }
-            }
-        }
-
         private string GetOldestValidFile(string path, string pattern)
         {
             var files = FileSystem.GetFiles(path, pattern);
 
             // Get file names by creation date
-            var orderedFileNames =
-                from file in files
+            return 
+                (from file in files
                 orderby file.CreationTimeUtc
-                select Path.GetFileNameWithoutExtension(file.Name);
-            
-            Guid guid;
-
-            return
-                (from fileName in orderedFileNames
-                where Guid.TryParse(fileName, out guid)
-                select fileName).FirstOrDefault();
+                select file.FullName).FirstOrDefault();
         }
 
         private string GetFilePath(FileQueue queue, Guid id)
@@ -113,7 +82,23 @@ namespace TucTuc
 
         private void OnFileChanged(object sender, FileChangedEventArgs e)
         {
-            MessageReceived(e.Directory);
+            // TODO: A new thread should be created here
+
+            string file = GetOldestValidFile(e.Directory, Pattern);
+
+            if (file != null)
+            {
+                var eventHandler = OnMessageReceived;
+                if (eventHandler != null)
+                {
+                    var eventArgs = new MessageReceivedEventArgs
+                    {
+                        Data = FileSystem.ReadFile(file, FileEncoding),
+                    };
+
+                    eventHandler(this, eventArgs);
+                }
+            }
         }
     }
 

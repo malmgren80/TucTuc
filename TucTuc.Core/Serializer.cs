@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Web.Script.Serialization;
+using ServiceStack.Text;
 
 namespace TucTuc
 {
@@ -14,21 +16,14 @@ namespace TucTuc
 
     public class JsonSerializer : ISerializer
     {
-        private readonly JavaScriptSerializer _serializer;
-
-        public JsonSerializer()
-        {
-            _serializer = new JavaScriptSerializer();
-        }
-
         public virtual string Serialize<T>(T data)
         {
-            return _serializer.Serialize(data);
+            return data.SerializeToString();
         }
 
         public virtual T Deserialize<T>(string data)
         {
-            return _serializer.Deserialize<T>(data);
+            return (T)ServiceStack.Text.Json.JsonReader<T>.Parse(data);
         }
     }
 }

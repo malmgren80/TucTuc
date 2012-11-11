@@ -5,10 +5,12 @@ using System.Text;
 
 namespace TucTuc
 {
-    public class TucTucMessage<T>
+    [Serializable]
+    public class TucTucMessage
     {
         public Guid Id { get; set; }
         public DateTime SentAtUtc { get; set; }
-        public T Payload { get; set; }
+        public string Sender { get; set; }
+        public object Payload { get; set; }
     }
 }

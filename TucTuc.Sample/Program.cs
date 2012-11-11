@@ -1,36 +1,43 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 namespace TucTuc.Sample
 {
-    class Program
+    public class Program
     {
         static void Main(string[] args)
         {
-            var cfg = new DefaultConfiguration();
-
-            var message = new DummyMessage { Text = "Hello" };
+            var message = new DummyMessage { Text = "Hello from Tuc Tuc!" };
 
             string queue = Path.Combine(Path.GetTempPath(), "TucTuc");
 
-            cfg.AddEndpoint(message.GetType(), queue);
-            cfg.InputQueue = queue;
+            var bus = new Bus(queue);
+            bus.RegisterEndpoint<DummyMessage>(queue);
+            bus.RegisterMessageHandler<DummyMessage>(m => Handle(m));
+             
+            bus.Start();
 
-            var bus = new Bus();
+            while(true)
+            {
+                bus.Send(message);    
 
-            bus.Start(cfg);
-
-            bus.Send(message);
-
-            Console.ReadKey();
+                Thread.Sleep(60000);
+            }
         }
 
-        public class DummyMessage
+        static void Handle(DummyMessage msg)
         {
-            public string Text;
+            Console.WriteLine("Message received on Thread: " + Thread.CurrentThread.ManagedThreadId + ", text: " + msg.Text);
         }
+    }
+
+    public class DummyMessage
+    {
+        public string Text { get; set; }
     }
 }
