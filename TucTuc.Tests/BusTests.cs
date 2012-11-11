@@ -14,7 +14,11 @@ namespace TucTuc.Tests
         [Test]
         public void Send_Null_Throws()
         {
-            var bus = new Bus();
+            var transport = A.Fake<ITransport>();
+
+            var bus = new Bus("myQueue");
+
+            bus.Transport = transport;
 
             bus.Start();
 
@@ -24,7 +28,11 @@ namespace TucTuc.Tests
         [Test]
         public void Send_NotConfigured_Throws()
         {
-            var bus = new Bus();
+            var transport = A.Fake<ITransport>();
+
+            var bus = new Bus("myQueue");
+
+            bus.Transport = transport;
 
             string someData = "some made up data";
 
@@ -34,7 +42,11 @@ namespace TucTuc.Tests
         [Test]
         public void Send_NoEndpointForType_Throws()
         {
-            var bus = new Bus();
+            var transport = A.Fake<ITransport>();
+
+            var bus = new Bus("myQueue");
+
+            bus.Transport = transport;
 
             bus.Start();
 

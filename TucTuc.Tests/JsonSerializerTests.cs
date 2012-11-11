@@ -35,9 +35,11 @@ namespace TucTuc.Tests
             Assert.That(msg.Text.Equals("TucTuc honks the horn"));
         }
 
-        public class TestMessage
-        {
-            public string Text;
-        }
+        
+    }
+
+    public class TestMessage
+    {
+        public string Text { get; set; }
     }
 }

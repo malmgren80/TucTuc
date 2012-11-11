@@ -12,7 +12,7 @@ namespace TucTuc.Tests
         [Test]
         public void DefaultConfiguration_NewInstance_SetsTransport()
         {
-            var cfg = new Bus();
+            var cfg = new Bus("myQueue");
 
             Assert.That(cfg.Transport, Is.Not.Null);
         }
@@ -20,7 +20,7 @@ namespace TucTuc.Tests
         [Test]
         public void DefaultConfiguration_NewInstance_SetsSerializer()
         {
-            var cfg = new Bus();
+            var cfg = new Bus("myQueue");
 
             Assert.That(cfg.Serializer, Is.Not.Null);
         }
